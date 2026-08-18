@@ -6,6 +6,28 @@ from data import PROVINCE, DISTRICTS, TYPE_LABEL, TEAM
 ROOT = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(ROOT, "site")
 
+
+def _asset_version():
+    """Short hash of the cached assets.
+
+    vercel.json serves /assets/* with `immutable, max-age=1 year`, so a browser
+    that has seen the old style.css or logo will never re-fetch it. Appending
+    ?v=<hash> to every asset URL makes the URL change whenever the bytes change,
+    which is what makes that caching header safe.
+    """
+    import hashlib
+    h = hashlib.sha1()
+    for rel in ("assets/style.css", "assets/site.js",
+                "assets/logo/madheshnext-logo.svg", "assets/logo/favicon.svg"):
+        path = os.path.join(ROOT, rel)
+        if os.path.exists(path):
+            with open(path, "rb") as f:
+                h.update(f.read())
+    return h.hexdigest()[:8]
+
+
+V = "?v=" + _asset_version()
+
 NAV = [
     ("index.html", "Home", "गृहपृष्ठ"),
     ("manifesto.html", "The Argument", "मूल विमर्श"),
@@ -54,10 +76,10 @@ def layout(title_en, title_ne, body, base="", desc_en="", active=""):
 <meta property="og:site_name" content="Madhesh Next">
 <meta property="og:image" content="https://madheshnext.org/assets/logo/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="icon" href="{base}assets/logo/favicon.svg" type="image/svg+xml">
-<link rel="icon" href="{base}assets/logo/favicon-32.png" sizes="32x32">
-<link rel="apple-touch-icon" href="{base}assets/logo/apple-touch-icon.png">
-<link rel="stylesheet" href="{base}assets/style.css">
+<link rel="icon" href="{base}assets/logo/favicon.svg{v}" type="image/svg+xml">
+<link rel="icon" href="{base}assets/logo/favicon-32.png{v}" sizes="32x32">
+<link rel="apple-touch-icon" href="{base}assets/logo/apple-touch-icon.png{v}">
+<link rel="stylesheet" href="{base}assets/style.css{v}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;600;700&family=Noto+Sans+Devanagari:wght@400;600;700&display=swap" rel="stylesheet">
@@ -67,7 +89,7 @@ def layout(title_en, title_ne, body, base="", desc_en="", active=""):
   <div class="wrap">
     <nav class="nav">
       <a class="brand" href="{base}index.html" aria-label="Madhesh Next — home">
-        <img class="brand__logo" src="{base}assets/logo/madheshnext-logo.svg" alt="Madhesh Next" width="198" height="26">
+        <img class="brand__logo" src="{base}assets/logo/madheshnext-logo.svg{v}" alt="Madhesh Next" width="198" height="26">
         <span class="brand__tag">{brandtag}</span>
       </a>
       <button class="navtoggle" aria-expanded="false" aria-label="Menu">☰</button>
@@ -90,7 +112,7 @@ def layout(title_en, title_ne, body, base="", desc_en="", active=""):
   <div class="wrap">
     <div class="footer-grid">
       <div>
-        <img class="footer__logo" src="{base}assets/logo/madheshnext-logo.svg" alt="Madhesh Next" width="259" height="34">
+        <img class="footer__logo" src="{base}assets/logo/madheshnext-logo.svg{v}" alt="Madhesh Next" width="259" height="34">
         <p class="footer__tag">{brandtag}</p>
         <p style="max-width:34ch;margin-bottom:14px">{tagline}</p>
         <p style="font-size:.92rem"><a href="mailto:hello@madheshnext.org" style="display:inline">hello@madheshnext.org</a></p>
@@ -105,12 +127,12 @@ def layout(title_en, title_ne, body, base="", desc_en="", active=""):
   </div>
 </footer>
 
-<script src="{base}assets/site.js"></script>
+<script src="{base}assets/site.js{v}"></script>
 </body>
 </html>
 """.format(
         title=title_en, desc=desc_en or "A citizen-led, non-partisan campaign to bring the economy into everyday public conversation in Madhesh.",
-        base=base, body="@@BODY@@", links=links, foot_links=foot_links, dist_links=dist_links,
+        base=base, v=V, body="@@BODY@@", links=links, foot_links=foot_links, dist_links=dist_links,
         tagline=t("A citizen-led, non-partisan effort to move public discourse from politics to economy.",
                   "सार्वजनिक विमर्शलाई राजनीतिबाट अर्थतन्त्रतर्फ लैजाने नागरिक नेतृत्वको गैर-दलीय प्रयास।"),
         brandtag=t("Moving Forward", "अगाडि बढ्दै"),
