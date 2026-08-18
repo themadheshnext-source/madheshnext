@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Static site generator for madheshnext.org. Run: python3 build.py"""
 import os, shutil
-from data import PROVINCE, DISTRICTS, TYPE_LABEL, CONVENERS
+from data import PROVINCE, DISTRICTS, TYPE_LABEL, TEAM
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(ROOT, "site")
@@ -12,7 +12,7 @@ NAV = [
     ("vision.html", "Vision", "दृष्टिकोण"),
     ("modules.html", "Modules", "मोड्युल"),
     ("districts.html", "Districts", "जिल्ला"),
-    ("conveners.html", "Conveners", "संयोजक"),
+    ("team.html", "Team", "टोली"),
     ("media.html", "Media", "मिडिया"),
     ("join.html", "Join", "सहभागी"),
 ]
@@ -67,7 +67,8 @@ def layout(title_en, title_ne, body, base="", desc_en="", active=""):
   <div class="wrap">
     <nav class="nav">
       <a class="brand" href="{base}index.html" aria-label="Madhesh Next — home">
-        <img class="brand__logo" src="{base}assets/logo/madheshnext-logo.svg" alt="Madhesh Next" width="118" height="34">
+        <img class="brand__logo" src="{base}assets/logo/madheshnext-logo.svg" alt="Madhesh Next" width="198" height="26">
+        <span class="brand__tag">{brandtag}</span>
       </a>
       <button class="navtoggle" aria-expanded="false" aria-label="Menu">☰</button>
       <div class="nav__links">
@@ -89,7 +90,8 @@ def layout(title_en, title_ne, body, base="", desc_en="", active=""):
   <div class="wrap">
     <div class="footer-grid">
       <div>
-        <img class="footer__logo" src="{base}assets/logo/madheshnext-logo.svg" alt="Madhesh Next" width="152" height="44">
+        <img class="footer__logo" src="{base}assets/logo/madheshnext-logo.svg" alt="Madhesh Next" width="259" height="34">
+        <p class="footer__tag">{brandtag}</p>
         <p style="max-width:34ch;margin-bottom:14px">{tagline}</p>
         <p style="font-size:.92rem"><a href="mailto:hello@madheshnext.org" style="display:inline">hello@madheshnext.org</a></p>
       </div>
@@ -111,6 +113,7 @@ def layout(title_en, title_ne, body, base="", desc_en="", active=""):
         base=base, body="@@BODY@@", links=links, foot_links=foot_links, dist_links=dist_links,
         tagline=t("A citizen-led, non-partisan effort to move public discourse from politics to economy.",
                   "सार्वजनिक विमर्शलाई राजनीतिबाट अर्थतन्त्रतर्फ लैजाने नागरिक नेतृत्वको गैर-दलीय प्रयास।"),
+        brandtag=t("Moving Forward", "अगाडि बढ्दै"),
         h_pages=t("Pages", "पृष्ठहरू"), h_districts=t("Districts", "जिल्लाहरू"),
         nonpartisan=t("Non-partisan · Citizen-led", "गैर-दलीय · नागरिक नेतृत्वमा"),
     ).replace("<main>\n@@BODY@@\n</main>", "<main>\n" + body + "\n</main>")
@@ -298,7 +301,7 @@ def page_home():
     <p class="eyebrow">{eb}</p>
     <h2>{h2}</h2>
     <div class="people" style="margin-top:30px">{cards}</div>
-    <p style="margin-top:28px"><a class="btn btn--line" href="conveners.html">{cta}</a></p>
+    <p style="margin-top:28px"><a class="btn btn--line" href="team.html">{cta}</a></p>
   </div>
 </section>
 
@@ -310,10 +313,10 @@ def page_home():
   </div>
 </section>
 """.format(
-        eb=t("Campaign conveners", "अभियान संयोजक"),
-        h2=t("Five conveners, one question", "पाँच संयोजक, एउटै प्रश्न"),
-        cards="".join(person_card(p, short=True) for p in CONVENERS),
-        cta=t("Meet the conveners", "संयोजकहरूलाई चिन्नुहोस्"),
+        eb=t("Who is behind it", "यसको पछाडि को छन्"),
+        h2=t("Five people, one question", "पाँच व्यक्ति, एउटै प्रश्न"),
+        cards="".join(person_card(p, short=True) for p in TEAM),
+        cta=t("Meet the team", "टोलीलाई चिन्नुहोस्"),
         ch=t("Before governments change, the conversation must change.",
              "सरकार फेरिनुअघि, बहस फेरिनुपर्छ।"),
         cl=t("Start a chapter in your municipality, contribute data, write, or simply ask your representative one economic question this month.",
@@ -369,7 +372,7 @@ def dcard(d, base=""):
 
 def person_card(p, short=False):
     initials = "".join(w[0] for w in p["name_en"].split()[:2])
-    bio = "" if short else '<p class="card__meta" style="justify-content:center;display:block;margin-top:12px">%s</p>' % t(p["bio_en"], p["bio_ne"])
+    bio = "" if short else '<p class="person__bio">%s</p>' % t(p["bio_en"], p["bio_ne"])
     return """
 <div class="person">
   <div class="person__avatar" aria-hidden="true">{ini}</div>
@@ -378,7 +381,7 @@ def person_card(p, short=False):
   <p class="person__role" style="margin-top:8px">{role}</p>
   {bio}
 </div>""".format(ini=initials, name=p["name_en"], ne=p["name_ne"],
-                 role=t("Campaign Convener", "अभियान संयोजक"), bio=bio)
+                 role=t(p["role_en"], p["role_ne"]), bio=bio)
 
 
 # --------------------------------------------------------------- manifesto
@@ -515,7 +518,7 @@ MANIFESTO = [
          "<p>The mountains and hills have products, resources and tourism destinations. Madhesh has agriculture, industry, cities, people, transport corridors and access to the Indian market. These should not be separate economic stories. They should become parts of one economic story of Nepal.</p>"
          "<p>The roads already provide much of the physical connection. The next task is to create the economic connections. And that begins not necessarily with another government programme or another change of government. <strong>It begins with changing the conversation.</strong></p>"
          "<p>To make economic possibility a subject of everyday public conversation in Madhesh. To make job creation a political expectation. To make entrepreneurship a form of citizenship. To make local government an enabler of enterprise. And ultimately, to make better use of Madhesh — not only for Madhesh, but for a more prosperous Nepal.</p>"
-         "<p class='muted' style='font-family:var(--sans);font-size:.9rem;margin-top:2.5em'>Founding note by Prashant Singh, Campaign Convener.</p>",
+         "<p class='muted' style='font-family:var(--sans);font-size:.9rem;margin-top:2.5em'>Founding note by Prashant Singh, mentor to the campaign.</p>",
          "<p>आफ्नो सबैभन्दा रणनीतिक अवस्थित र घना बसोबास भएको क्षेत्र आर्थिक इन्जिन नभई मुख्यतः राजनीतिक निर्वाचन क्षेत्र मात्र रहिरह्यो भने नेपालले समृद्ध अर्थतन्त्र बनाउन सक्दैन।</p>"
          "<p>पहाड–हिमालसँग उत्पादन, स्रोत र पर्यटकीय गन्तव्य छन्। मधेशसँग कृषि, उद्योग, सहर, जनशक्ति, यातायात कोरिडोर र भारतीय बजारको पहुँच छ। यी छुट्टाछुट्टै आर्थिक कथा हुनु हुँदैन। यी नेपालको एउटै आर्थिक कथाका हिस्सा बन्नुपर्छ।</p>"
          "<p>सडकले भौतिक जोडाइ धेरै हदसम्म दिइसक्यो। अबको काम आर्थिक जोडाइ बनाउनु हो। र त्यो अर्को सरकारी कार्यक्रम वा अर्को सत्ता परिवर्तनबाट सुरु हुँदैन। <strong>त्यो बहस बदल्नबाट सुरु हुन्छ।</strong></p>"
@@ -911,8 +914,8 @@ def page_district(d):
                           % (d["en"], len(d["lgs"]), "{:,}".format(d["pop"])))
 
 
-# ---------------------------------------------------------------- conveners
-def page_conveners():
+# --------------------------------------------------------------------- team
+def page_team():
     body = """
 <section class="section section--tight" style="background:var(--paper-2);border-bottom:1px solid var(--line)">
   <div class="wrap narrow">
@@ -943,30 +946,31 @@ def page_conveners():
   </div>
 </section>
 """.format(
-        eb=t("Campaign conveners", "अभियान संयोजक"),
-        h1=t("Who convenes Madhesh Next", "मधेश नेक्स्टका संयोजक"),
-        lede=t("Conveners do not lead the campaign — they convene it. Their job is to keep it non-partisan, keep it open, and make sure every district can run without waiting for anyone.",
-               "संयोजकहरूले अभियानको नेतृत्व गर्दैनन् — तिनले यसलाई जुटाउँछन्। तिनको काम यसलाई गैर-दलीय र खुला राख्नु, र हरेक जिल्लाले कसैको प्रतीक्षा नगरी चल्न सक्ने बनाउनु हो।"),
-        cards="".join(person_card(p) for p in CONVENERS),
-        h2=t("What a convener does — and does not do", "संयोजकले के गर्छन् — र के गर्दैनन्"),
+        eb=t("The team", "टोली"),
+        h1=t("Who runs Madhesh Next", "मधेश नेक्स्ट कसले चलाउँछ"),
+        lede=t("Five people hold the campaign together — one convener, and four who carry the work that a campaign needs: mentoring, public relations, strategy and media. Nobody here leads Madhesh; the job is to keep the campaign non-partisan, keep it open, and make sure every district can run without waiting for anyone.",
+               "पाँच जनाले यो अभियानलाई जोडेर राखेका छन् — एक संयोजक, र अभियानलाई चाहिने काम बोक्ने चार जना: मार्गदर्शन, जनसम्पर्क, रणनीति र सञ्चार। यहाँ कसैले मधेशको नेतृत्व गर्दैन; काम भनेको अभियानलाई गैर-दलीय र खुला राख्नु, र हरेक जिल्लाले कसैको प्रतीक्षा नगरी चल्न सक्ने बनाउनु हो।"),
+        cards="".join(person_card(p) for p in TEAM),
+        h2=t("What the team does — and does not do", "टोलीले के गर्छ — र के गर्दैन"),
         p=blocks(
             "<ul class='qlist'>"
-            "<li><strong>Does:</strong> convene meetings, hold the campaign to its non-partisan commitment, help district chapters start, and answer for what has and has not been delivered.</li>"
+            "<li><strong>Does:</strong> convene meetings, hold the campaign to its non-partisan commitment, help district chapters start, publish what it finds, and answer for what has and has not been delivered.</li>"
             "<li><strong>Does not:</strong> speak for any political party, endorse candidates, control what a district chapter decides to work on, or own the campaign's material — everything Madhesh Next publishes is free to copy.</li>"
             "</ul>"
-            "<p>Conveners are accountable to the same question the campaign asks of everyone else: what did you actually make easier this year?</p>",
+            "<p>The team is accountable to the same question the campaign asks of everyone else: what did you actually make easier this year?</p>",
             "<ul class='qlist'>"
-            "<li><strong>गर्छन्:</strong> बैठक जुटाउने, अभियानलाई गैर-दलीय प्रतिबद्धतामा राख्ने, जिल्ला च्याप्टर सुरु गर्न सघाउने, र के भयो–के भएन भन्नेमा जवाफ दिने।</li>"
-            "<li><strong>गर्दैनन्:</strong> कुनै दलका तर्फबाट बोल्ने, उम्मेदवारलाई समर्थन गर्ने, जिल्ला च्याप्टरले के काम गर्ने भन्ने नियन्त्रण गर्ने, वा अभियानको सामग्रीमाथि स्वामित्व जनाउने — मधेश नेक्स्टले प्रकाशित गर्ने सबै सामग्री स्वतन्त्र रूपमा प्रतिलिपि गर्न पाइन्छ।</li>"
+            "<li><strong>गर्छ:</strong> बैठक जुटाउने, अभियानलाई गैर-दलीय प्रतिबद्धतामा राख्ने, जिल्ला च्याप्टर सुरु गर्न सघाउने, भेटिएका कुरा प्रकाशित गर्ने, र के भयो–के भएन भन्नेमा जवाफ दिने।</li>"
+            "<li><strong>गर्दैन:</strong> कुनै दलका तर्फबाट बोल्ने, उम्मेदवारलाई समर्थन गर्ने, जिल्ला च्याप्टरले के काम गर्ने भन्ने नियन्त्रण गर्ने, वा अभियानको सामग्रीमाथि स्वामित्व जनाउने — मधेश नेक्स्टले प्रकाशित गर्ने सबै सामग्री स्वतन्त्र रूपमा प्रतिलिपि गर्न पाइन्छ।</li>"
             "</ul>"
-            "<p>संयोजकहरू पनि अभियानले अरूलाई सोध्ने त्यही प्रश्नप्रति उत्तरदायी छन्: तपाईंले यो वर्ष वास्तवमा के सजिलो बनाउनुभयो?</p>"),
+            "<p>टोली पनि अभियानले अरूलाई सोध्ने त्यही प्रश्नप्रति उत्तरदायी छ: तपाईंले यो वर्ष वास्तवमा के सजिलो बनाउनुभयो?</p>"),
         h3=t("District conveners wanted", "जिल्ला संयोजक चाहिएको छ"),
         p3=t("Each of the 8 districts needs its own convener, and each of the 136 local levels needs at least one person willing to ask one question.",
              "८ मध्ये हरेक जिल्लालाई आफ्नै संयोजक चाहिन्छ, र १३६ स्थानीय तहमध्ये हरेकलाई एउटा प्रश्न सोध्न तयार कम्तीमा एक व्यक्ति चाहिन्छ।"),
         c3=t("Volunteer as a convener", "संयोजकका रूपमा स्वयंसेवा गर्नुहोस्"),
     )
-    return layout("Conveners", "संयोजक", body,
-                  desc_en="Campaign conveners of Madhesh Next: Prashant Singh, Anil Mahaseth, Sanjog Dev, Ajay Pandey and Bala Krishna.")
+    return layout("Team", "टोली", body,
+                  desc_en="The Madhesh Next team: Prashant Singh (mentor), Anil Mahaseth (public relations), "
+                          "Sanjog Dev (campaign convener), Ajay Pandey (campaign strategist) and Bala Krishna (media).")
 
 
 # -------------------------------------------------------------------- media
@@ -1160,6 +1164,22 @@ def write(path, html):
     return path
 
 
+# main() wipes site/ on every build, so anything that must survive is written here.
+VERCEL_JSON = """{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "trailingSlash": false,
+  "redirects": [
+    { "source": "/conveners", "destination": "/team", "permanent": true },
+    { "source": "/conveners.html", "destination": "/team", "permanent": true }
+  ],
+  "headers": [
+    { "source": "/assets/(.*)", "headers": [ { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" } ] },
+    { "source": "/(.*)", "headers": [ { "key": "X-Content-Type-Options", "value": "nosniff" }, { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" } ] }
+  ]
+}
+"""
+
+
 def main():
     if os.path.isdir(OUT):
         shutil.rmtree(OUT)
@@ -1172,7 +1192,7 @@ def main():
         write("vision.html", page_vision()),
         write("modules.html", page_modules()),
         write("districts.html", page_districts()),
-        write("conveners.html", page_conveners()),
+        write("team.html", page_team()),
         write("media.html", page_media()),
         write("join.html", page_join()),
     ]
@@ -1186,6 +1206,7 @@ def main():
           '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">%s</urlset>' % urls)
     write("robots.txt", "User-agent: *\nAllow: /\nSitemap: https://madheshnext.org/sitemap.xml\n")
     write("CNAME", "madheshnext.org\n")
+    write("vercel.json", VERCEL_JSON)
 
     print("Built %d pages into %s" % (len(made), OUT))
     for p in made:

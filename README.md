@@ -10,19 +10,61 @@ Live at **[madheshnext.org](https://madheshnext.org)**
 - `site/` — the deployable website. This is the Vercel root directory.
 - `build.py` — the static site generator. Run `python3 build.py` to rebuild `site/`
 - `data.py` — all 8 districts and all 136 local governments, in English and Nepali
-- `makelogo.py` — regenerates the logo suite as SVG, with the type converted to outlines
-- `rasterize.py` — regenerates the PNG and favicon exports from those SVGs
+- `makelogo.py` — regenerates the whole logo suite: SVGs with the type converted to
+  outlines, plus the PNG and favicon exports
 - `assets/` — the stylesheet, the JavaScript and the logo sources
 - `brand.html` — the brand sheet. Open it in a browser.
+- `NOTES.md` — working notes: what broke in the last publish, what changed since
 
 ## The site
 
 Bilingual, English and Nepali, with a language toggle in the header. Sixteen pages
 covering the founding argument, the 2030–2050 vision, the four campaign modules, all
-8 districts of Madhesh Province, all 136 local governments, the campaign conveners,
-media, and a join form.
+8 districts of Madhesh Province, all 136 local governments, the team, media, and a
+join form.
 
 No frameworks, no build tools, no database. Plain HTML, one stylesheet, one small script.
+
+## Brand
+
+The wordmark is **Poppins SemiBold** converted to outlines, in navy `#0A2C5A`, with the
+**left half of the x in "Next" in teal `#009B95`** — a forward chevron, and the only
+colour in the mark. The tagline is **Moving Forward** (ने: अगाडि बढ्दै).
+
+| File in `assets/logo/` | Use |
+|---|---|
+| `madheshnext-logo.svg` | Primary. Site header, documents, anything on white. |
+| `madheshnext-logo-reversed.svg` | White version for dark backgrounds. |
+| `madheshnext-logo-horizontal.svg` | Wordmark + tagline. Banners, signatures, letterheads. |
+| `madheshnext-logo-tagline-reversed.svg` | The same, reversed. |
+| `madheshnext-logo-bilingual.svg` | With मधेश नेक्स्ट under a teal rule. |
+| `madheshnext-lockup.svg` | Masthead lockup with "Madhesh 2030 · 2040 · 2050". |
+| `madheshnext-mark.svg` | MN monogram block. Avatars, social profiles. |
+| `favicon.svg`, `favicon-32.png`, `apple-touch-icon.png` | Browser and phone icons. |
+| `og-image.png` | 1200×630 social share card. |
+
+Never re-set the type by hand — the SVGs are final. To change the wording, the colours or
+the tagline, run `makelogo.py`; the fonts it needs are listed in its docstring.
+
+The pages themselves stay on the near-black-on-white editorial palette; navy and teal
+appear in the logo, the monogram blocks and the role labels only. All tokens live in the
+`:root` block of `assets/style.css`.
+
+## The team
+
+Only one person is a convener. The rest hold named roles.
+
+| Person | Role |
+|---|---|
+| Prashant Singh | Mentor |
+| Anil Mahaseth | Public Relations Specialist |
+| Sanjog Dev | Campaign Convener |
+| Ajay Pandey | Campaign Strategist |
+| Bala Krishna | Media Specialist |
+
+Edit `TEAM` in `data.py` to change names, roles, Nepali spellings or bios, then rebuild.
+The page is `team.html`; `/conveners` and `/conveners.html` redirect to `/team` via
+`site/vercel.json`, which `build.py` writes on every build.
 
 ### The four modules
 

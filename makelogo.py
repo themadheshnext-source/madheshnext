@@ -1,200 +1,337 @@
 # -*- coding: utf-8 -*-
-"""Generate the Madhesh Next logo suite as SVG (text converted to outlines).
+"""Regenerate the whole Madhesh Next logo suite into assets/logo/.
 
-Structure mirrors the Saptari Next mark: a stacked two-line grotesque wordmark
-with negative leading and the second line indented under the first.
+The mark: "Madhesh Next" in Poppins SemiBold, converted to outlines, navy #0A2C5A,
+with the LEFT half of the x in "Next" filled teal #009B95 — the forward chevron.
+Tagline: "Moving Forward", Poppins Medium, teal, letterspaced, right-aligned.
+
+You almost never need to run this. Everything in assets/logo/ is final and committed.
+Run it only to change the wording, the colours or the tagline:
+
+    pip install uharfbuzz fonttools cairosvg
+    mkdir -p /tmp/fonts && cd /tmp/fonts
+    B=https://raw.githubusercontent.com/google/fonts/main/ofl
+    curl -LO $B/poppins/Poppins-SemiBold.ttf
+    curl -LO $B/poppins/Poppins-Medium.ttf
+    curl -L -o NotoSansDevanagari.ttf \
+      "$B/notosansdevanagari/NotoSansDevanagari%5Bwdth%2Cwght%5D.ttf"
+    python3 makelogo.py
+
+Then commit whatever changed in assets/logo/.
 """
 import os
-from fontTools.ttLib import TTFont
-from fontTools.pens.svgPathPen import SVGPathPen
-from fontTools.pens.transformPen import TransformPen
-from fontTools.misc.transform import Transform
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(ROOT, "assets", "logo")
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "logo")
 os.makedirs(OUT, exist_ok=True)
 
-INTER = os.path.join(ROOT, "node_modules/@fontsource/inter/files/inter-latin-800-normal.woff")
-DEVA = os.path.join(ROOT, "node_modules/@fontsource/noto-sans-devanagari/files/noto-sans-devanagari-devanagari-700-normal.woff")
+import uharfbuzz as hb
+from fontTools.ttLib import TTFont
+from fontTools.pens.svgPathPen import SVGPathPen
+
+NAVY = "#0A2C5A"
+TEAL = "#009B95"
+WHITE = "#FFFFFF"
+
+FONTS = {
+    "poppins": "/tmp/fonts/Poppins-SemiBold.ttf",
+    "poppins_med": "/tmp/fonts/Poppins-Medium.ttf",
+    "deva": "/tmp/fonts/NotoSansDevanagari.ttf",
+}
+_cache = {}
 
 
-class Typeset:
-    def __init__(self, path):
-        self.f = TTFont(path)
-        self.upm = self.f["head"].unitsPerEm
-        self.gs = self.f.getGlyphSet()
-        self.cmap = self.f.getBestCmap()
-        self.hmtx = self.f["hmtx"]
-        try:
-            self.kern = self.f["kern"].kernTables[0].kernTable
-        except Exception:
-            self.kern = {}
-
-    def gname(self, ch):
-        return self.cmap.get(ord(ch))
-
-    def path(self, text, size, x=0, y=0, tracking=0.0):
-        """Return (svg_path_d, advance_width). y is the baseline. tracking in em."""
-        scale = size / self.upm
-        d = []
-        pen_x = 0.0
-        prev = None
-        for ch in text:
-            g = self.gname(ch)
-            if g is None:
-                continue
-            if prev is not None:
-                pen_x += self.kern.get((prev, g), 0)
-            # y flips: font units go up, SVG goes down
-            tr = Transform(scale, 0, 0, -scale, x + pen_x * scale, y)
-            pen = SVGPathPen(self.gs)
-            self.gs[g].draw(TransformPen(pen, tr))
-            seg = pen.getCommands()
-            if seg:
-                d.append(seg)
-            pen_x += self.hmtx[g][0] + tracking * self.upm
-            prev = g
-        return " ".join(d), pen_x * scale
-
-    def width(self, text, size, tracking=0.0):
-        return self.path(text, size, tracking=tracking)[1]
+def _load(key):
+    if key not in _cache:
+        path = FONTS[key]
+        with open(path, "rb") as fh:
+            data = fh.read()
+        face = hb.Face(data)
+        font = hb.Font(face)
+        tt = TTFont(path)
+        _cache[key] = (font, tt, face.upem)
+    return _cache[key]
 
 
-inter = Typeset(INTER)
-deva = Typeset(DEVA)
+def shape(text, key="poppins", size=1000, tracking=0, variations=None):
+    """Return (glyph_runs, advance_width) in `size` units. Origin at baseline left."""
+    font, tt, upem = _load(key)
+    if variations:
+        font.set_variations(variations)
+    font.scale = (upem, upem)
+    buf = hb.Buffer()
+    buf.add_str(text)
+    buf.guess_segment_properties()
+    hb.shape(font, buf)
+    glyph_set = tt.getGlyphSet()
+    order = tt.getGlyphOrder()
+    scale = size / upem
+    runs, x = [], 0.0
+    for info, pos in zip(buf.glyph_infos, buf.glyph_positions):
+        name = order[info.codepoint]
+        pen = SVGPathPen(glyph_set)
+        glyph_set[name].draw(pen)
+        d = pen.getCommands()
+        gx = (x + pos.x_offset) * scale
+        gy = pos.y_offset * scale
+        if d:
+            runs.append({"d": d, "x": gx, "y": gy, "scale": scale, "name": name,
+                         "adv": pos.x_advance * scale, "cluster": info.cluster})
+        x += pos.x_advance + tracking / scale
+    return runs, x * scale
 
-SVG = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w:.1f} {h:.1f}" '
-       'width="{w:.0f}" height="{h:.0f}" role="img" aria-label="{label}">'
-       '<title>{label}</title>{body}</svg>')
+
+def path_el(run, fill, clip=None, extra=""):
+    tr = "translate(%.2f %.2f) scale(%.5f -%.5f)" % (run["x"], run["y"], run["scale"], run["scale"])
+    c = ' clip-path="url(#%s)"' % clip if clip else ""
+    return '<path transform="%s" d="%s" fill="%s"%s%s/>' % (tr, run["d"], fill, c, extra)
 
 
-def write(name, w, h, body, label="Madhesh Next"):
+def wordmark(size=1000, tracking=-10, text_fill=NAVY, uid="a"):
+    """Return (svg_body, width, defs) for 'Madhesh Next' with the split teal x."""
+    runs, width = shape("Madhesh Next", size=size, tracking=tracking)
+    # locate the final 'x' glyph (the one in "Next": index of 'x' in the string)
+    xi = "Madhesh Next".index("x")
+    parts, defs = [], []
+    for i, r in enumerate(runs):
+        if r.get("cluster") == xi:
+            # crossing point = horizontal middle of the glyph ink box
+            gx0 = r["x"]
+            gw = r["adv"]
+            mid = gx0 + gw / 2.0
+            top, bot = -size * 1.2, size * 1.2
+            defs.append('<clipPath id="xl%s"><rect x="%.2f" y="%.2f" width="%.2f" height="%.2f"/></clipPath>'
+                        % (uid, gx0 - size, top, size + (mid - gx0), bot - top))
+            defs.append('<clipPath id="xr%s"><rect x="%.2f" y="%.2f" width="%.2f" height="%.2f"/></clipPath>'
+                        % (uid, mid, top, size * 2, bot - top))
+            parts.append('<g clip-path="url(#xl%s)">%s</g>' % (uid, path_el(r, TEAL)))
+            parts.append('<g clip-path="url(#xr%s)">%s</g>' % (uid, path_el(r, text_fill)))
+        else:
+            parts.append(path_el(r, text_fill))
+    return "\n  ".join(parts), width, "\n  ".join(defs)
+
+
+def svg(width, height, body, defs="", pad=0, bg=None):
+    d = "<defs>%s</defs>" % defs if defs else ""
+    b = '<rect width="%.2f" height="%.2f" fill="%s"/>' % (width, height, bg) if bg else ""
+    return ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %.2f %.2f" '
+            'width="%.2f" height="%.2f" role="img" aria-label="Madhesh Next">\n'
+            '%s%s\n  %s\n</svg>\n' % (width, height, width, height, d, b, body))
+
+
+from fontTools.pens.boundsPen import BoundsPen
+
+
+def ink_bbox(runs, key="poppins"):
+    font, tt, upem = _load(key)
+    gs = tt.getGlyphSet()
+    x0 = y0 = 1e9
+    x1 = y1 = -1e9
+    for r in runs:
+        bp = BoundsPen(gs)
+        gs[r["name"]].draw(bp)
+        if bp.bounds is None:
+            continue
+        a, b, c, d = bp.bounds
+        s = r["scale"]
+        x0 = min(x0, r["x"] + a * s); x1 = max(x1, r["x"] + c * s)
+        y0 = min(y0, r["y"] - d * s); y1 = max(y1, r["y"] - b * s)
+    return x0, y0, x1, y1
+
+
+# ============================ asset build =============================
+
+S = 1000
+TRACK = -12
+TAGLINE = "Moving Forward"
+TAGLINE_NE = "अगाडि बढ्दै"
+
+
+def build_wordmark(fill, uid, pad_ratio=0.10):
+    runs, adv = shape("Madhesh Next", size=S, tracking=TRACK)
+    x0, y0, x1, y1 = ink_bbox(runs)
+    body, _, defs = wordmark(size=S, tracking=TRACK, text_fill=fill, uid=uid)
+    pad = S * pad_ratio
+    w = (x1 - x0) + 2 * pad
+    h = (y1 - y0) + 2 * pad
+    shift = "translate(%.2f %.2f)" % (pad - x0, pad - y0)
+    return '<g transform="%s">\n  %s\n  </g>' % (shift, body), w, h, defs, (x0, y0, x1, y1)
+
+
+def write(name, txt):
     p = os.path.join(OUT, name)
-    with open(p, "w", encoding="utf-8") as fh:
-        fh.write(SVG.format(w=w, h=h, body=body, label=label))
-    return name
+    with open(p, "w") as fh:
+        fh.write(txt)
+    print(name, len(txt))
 
 
-# ---------------------------------------------------------------- 1. stacked
-def stacked(color="#121212", name="madheshnext-logo.svg", pad=0.0):
-    """Two lines, negative leading, line 2 right-aligned to line 1."""
-    S = 100.0                 # cap size
-    TRACK = -0.022            # tight, like the Saptari mark
-    LEAD = 0.78 * S           # negative leading — lines nearly touch
+# ---------- 1. primary wordmark ----------
+body, w, h, defs, bb = build_wordmark(NAVY, "p")
+write("madheshnext-logo.svg", svg(w, h, body, defs))
 
-    w1 = inter.width("Madhesh", S, TRACK)
-    w2 = inter.width("Next", S, TRACK)
-    width = max(w1, w2)
+# ---------- 2. reversed (white on dark) ----------
+body, w, h, defs, bb = build_wordmark(WHITE, "r")
+write("madheshnext-logo-reversed.svg", svg(w, h, body, defs))
 
-    asc = 0.73 * S            # cap height above baseline
-    desc = 0.21 * S           # descender of 'h'/'x' below
-
-    y1 = asc
-    y2 = asc + LEAD
-    h = y2 + desc
-
-    d1, _ = inter.path("Madhesh", S, x=0, y=y1, tracking=TRACK)
-    d2, _ = inter.path("Next", S, x=width - w2, y=y2, tracking=TRACK)
-
-    body = '<g fill="%s"><path d="%s"/><path d="%s"/></g>' % (color, d1, d2)
-    return write(name, width + pad * 2, h + pad * 2,
-                 '<g transform="translate(%.1f,%.1f)">%s</g>' % (pad, pad, body))
-
-
-# ------------------------------------------------------------- 2. horizontal
-def horizontal(color="#121212", name="madheshnext-logo-horizontal.svg"):
-    S = 100.0
-    TRACK = -0.022
-    gap = 0.24 * S
-    d1, w1 = inter.path("Madhesh", S, x=0, y=0.73 * S, tracking=TRACK)
-    d2, w2 = inter.path("Next", S, x=w1 + gap, y=0.73 * S, tracking=TRACK)
-    width = w1 + gap + w2
-    body = '<g fill="%s"><path d="%s"/><path d="%s"/></g>' % (color, d1, d2)
-    return write(name, width, 0.73 * S + 0.21 * S, body)
+# ---------- 3. horizontal = wordmark + rule + tagline ----------
+def with_tagline(fill, tag_fill, uid, tagline=TAGLINE):
+    runs, _ = shape("Madhesh Next", size=S, tracking=TRACK)
+    x0, y0, x1, y1 = ink_bbox(runs)
+    body, _, defs = wordmark(size=S, tracking=TRACK, text_fill=fill, uid=uid)
+    tsize = S * 0.235
+    truns, tadv = shape(tagline, key="poppins_med", size=tsize, tracking=tsize * 0.42)
+    tx0, ty0, tx1, ty1 = ink_bbox(truns, "poppins_med")
+    pad = S * 0.10
+    gap = S * 0.20
+    wm_w = x1 - x0
+    wm_h = y1 - y0
+    tag_h = ty1 - ty0
+    w = wm_w + 2 * pad
+    h = wm_h + gap + tag_h + 2 * pad
+    tag_body = "\n    ".join(path_el(r, tag_fill) for r in truns)
+    # right-align tagline under the wordmark
+    tag_shift = pad + wm_w - (tx1 - tx0)
+    out = ('<g transform="translate(%.2f %.2f)">\n  %s\n  </g>\n'
+           '  <g transform="translate(%.2f %.2f)">\n    %s\n  </g>'
+           % (pad - x0, pad - y0, body,
+              tag_shift - tx0, pad + wm_h + gap - ty0, tag_body))
+    return out, w, h, defs
 
 
-# --------------------------------------------------------------- 3. bilingual
-def bilingual(color="#121212", name="madheshnext-logo-bilingual.svg"):
-    """Stacked English mark with the Nepali name set beneath a hairline rule."""
-    S = 100.0
-    TRACK = -0.022
-    LEAD = 0.78 * S
-    w1 = inter.width("Madhesh", S, TRACK)
-    w2 = inter.width("Next", S, TRACK)
-    width = max(w1, w2)
-    asc, desc = 0.73 * S, 0.21 * S
-    y1, y2 = asc, asc + LEAD
+body, w, h, defs = with_tagline(NAVY, TEAL, "h")
+write("madheshnext-logo-horizontal.svg", svg(w, h, body, defs))
 
-    d1, _ = inter.path("Madhesh", S, x=0, y=y1, tracking=TRACK)
-    d2, _ = inter.path("Next", S, x=width - w2, y=y2, tracking=TRACK)
+body, w, h, defs = with_tagline(WHITE, TEAL, "hr")
+write("madheshnext-logo-tagline-reversed.svg", svg(w, h, body, defs))
 
-    rule_y = y2 + desc + 0.20 * S
-    ns = 0.30 * S
-    dn, wn = deva.path("मधेश नेक्स्ट", ns, x=0, y=rule_y + 0.42 * S)
-    h = rule_y + 0.60 * S
-
-    body = ('<g fill="{c}"><path d="{d1}"/><path d="{d2}"/>'
-            '<rect x="0" y="{ry:.1f}" width="{w:.1f}" height="2"/>'
-            '<path d="{dn}"/></g>').format(c=color, d1=d1, d2=d2, ry=rule_y, w=width, dn=dn)
-    return write(name, width, h, body)
-
-
-# ------------------------------------------------------------------ 4. mark
-def mark(fg="#ffffff", bg="#121212", name="madheshnext-mark.svg"):
-    """Square monogram: MN stacked inside a solid block. For avatars/favicons."""
-    BOX = 100.0
-    S = 46.0
-    TRACK = -0.03
-    wm = inter.width("M", S, TRACK)
-    wn = inter.width("N", S, TRACK)
-    width = max(wm, wn)
-    lead = 0.98 * S
-    top = (BOX - (0.73 * S + lead)) / 2 + 0.73 * S
-    x0 = (BOX - width) / 2
-    dm, _ = inter.path("M", S, x=x0, y=top, tracking=TRACK)
-    dn, _ = inter.path("N", S, x=x0 + (width - wn), y=top + lead, tracking=TRACK)
-    body = ('<rect width="100" height="100" fill="%s"/>'
-            '<g fill="%s"><path d="%s"/><path d="%s"/></g>' % (bg, fg, dm, dn))
-    return write(name, BOX, BOX, body)
+# ---------- 4. bilingual: wordmark + rule + मधेश नेक्स्ट ----------
+def bilingual(fill, uid):
+    runs, _ = shape("Madhesh Next", size=S, tracking=TRACK)
+    x0, y0, x1, y1 = ink_bbox(runs)
+    body, _, defs = wordmark(size=S, tracking=TRACK, text_fill=fill, uid=uid)
+    nsize = S * 0.46
+    nruns, _ = shape("मधेश नेक्स्ट", key="deva", size=nsize,
+                       variations={"wght": 600})
+    nx0, ny0, nx1, ny1 = ink_bbox(nruns, "deva")
+    pad = S * 0.10
+    gap = S * 0.16
+    rule_gap = S * 0.14
+    wm_w, wm_h = x1 - x0, y1 - y0
+    ne_h = ny1 - ny0
+    w = wm_w + 2 * pad
+    h = wm_h + gap + rule_gap + ne_h + 2 * pad
+    ne_body = "\n    ".join(path_el(r, fill) for r in nruns)
+    rule_y = pad + wm_h + gap
+    out = ('<g transform="translate(%.2f %.2f)">\n  %s\n  </g>\n'
+           '  <rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" fill="%s"/>\n'
+           '  <g transform="translate(%.2f %.2f)">\n    %s\n  </g>'
+           % (pad - x0, pad - y0, body,
+              pad, rule_y, wm_w, S * 0.035, TEAL,
+              pad - nx0, rule_y + rule_gap - ny0, ne_body))
+    return out, w, h, defs
 
 
-def favicon(name="favicon.svg"):
-    return mark(fg="#ffffff", bg="#121212", name=name)
+body, w, h, defs = bilingual(NAVY, "b")
+write("madheshnext-logo-bilingual.svg", svg(w, h, body, defs))
+
+# ---------- 5. lockup: bilingual + tagline + dates ----------
+def lockup():
+    runs, _ = shape("Madhesh Next", size=S, tracking=TRACK)
+    x0, y0, x1, y1 = ink_bbox(runs)
+    body, _, defs = wordmark(size=S, tracking=TRACK, text_fill=NAVY, uid="l")
+    tsize = S * 0.235
+    truns, _ = shape(TAGLINE, key="poppins_med", size=tsize, tracking=tsize * 0.42)
+    tx0, ty0, tx1, ty1 = ink_bbox(truns, "poppins_med")
+    dsize = S * 0.19
+    druns, _ = shape("MADHESH 2030 · 2040 · 2050", key="poppins_med", size=dsize,
+                       tracking=dsize * 0.30)
+    dx0, dy0, dx1, dy1 = ink_bbox(druns, "poppins_med")
+    pad = S * 0.12
+    wm_w, wm_h = x1 - x0, y1 - y0
+    y = pad + wm_h + S * 0.20
+    tag_h = ty1 - ty0
+    y2 = y + tag_h + S * 0.16
+    h = y2 + S * 0.10 + (dy1 - dy0) + pad
+    w = wm_w + 2 * pad
+    tag_body = "\n    ".join(path_el(r, TEAL) for r in truns)
+    date_body = "\n    ".join(path_el(r, "#5A6B82") for r in druns)
+    out = ('<g transform="translate(%.2f %.2f)">\n  %s\n  </g>\n'
+           '  <g transform="translate(%.2f %.2f)">\n    %s\n  </g>\n'
+           '  <rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" fill="%s"/>\n'
+           '  <g transform="translate(%.2f %.2f)">\n    %s\n  </g>'
+           % (pad - x0, pad - y0, body,
+              pad + wm_w - (tx1 - tx0) - tx0, y - ty0, tag_body,
+              pad, y2 - S * 0.02, wm_w, S * 0.02, "#D8DEE7",
+              pad + wm_w - (dx1 - dx0) - dx0, y2 + S * 0.10 - dy0, date_body))
+    return out, w, h, defs
 
 
-# --------------------------------------------------------------- 5. lockups
-def lockup_rule(color="#121212", name="madheshnext-lockup.svg"):
-    """Wordmark with the campaign years under a hairline — masthead lockup."""
-    S = 100.0
-    TRACK = -0.022
-    LEAD = 0.78 * S
-    w1 = inter.width("Madhesh", S, TRACK)
-    w2 = inter.width("Next", S, TRACK)
-    width = max(w1, w2)
-    asc, desc = 0.73 * S, 0.21 * S
-    d1, _ = inter.path("Madhesh", S, x=0, y=asc, tracking=TRACK)
-    d2, _ = inter.path("Next", S, x=width - w2, y=asc + LEAD, tracking=TRACK)
-    rule_y = asc + LEAD + desc + 0.18 * S
-    ys = 0.155 * S
-    dy, wy = inter.path("MADHESH 2030 · 2040 · 2050", ys, x=0, y=rule_y + 0.34 * S, tracking=0.14)
-    h = rule_y + 0.50 * S
-    body = ('<g fill="{c}"><path d="{d1}"/><path d="{d2}"/>'
-            '<rect x="0" y="{ry:.1f}" width="{w:.1f}" height="2"/>'
-            '<path d="{dy}"/></g>').format(c=color, d1=d1, d2=d2, ry=rule_y,
-                                           w=max(width, wy), dy=dy)
-    return write(name, max(width, wy), h, body)
+body, w, h, defs = lockup()
+write("madheshnext-lockup.svg", svg(w, h, body, defs))
 
 
-if __name__ == "__main__":
-    made = [
-        stacked("#121212", "madheshnext-logo.svg"),
-        stacked("#ffffff", "madheshnext-logo-reversed.svg"),
-        horizontal("#121212"),
-        bilingual("#121212"),
-        lockup_rule("#121212"),
-        mark("#ffffff", "#121212", "madheshnext-mark.svg"),
-        mark("#121212", "#ffffff", "madheshnext-mark-light.svg"),
-        favicon(),
-    ]
-    for m in made:
-        print("  ", m)
+# ---------- 6. MN mark ----------
+def mark(bg, fill, teal, size=512, rounded=0):
+    runs, adv = shape("MN", size=size * 0.52, tracking=-size * 0.012)
+    x0, y0, x1, y1 = ink_bbox(runs)
+    cx = (size - (x1 - x0)) / 2 - x0
+    cy = (size - (y1 - y0)) / 2 - y0
+    body = "\n  ".join(path_el(r, fill) for r in runs)
+    bar_h = size * 0.075
+    parts = ['<rect width="%d" height="%d" fill="%s"/>' % (size, size, bg),
+             '<g transform="translate(%.2f %.2f)">%s</g>' % (cx, cy - size * 0.045, body),
+             '<rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" fill="%s"/>'
+             % (size * 0.30, size * 0.755, size * 0.40, bar_h, teal)]
+    return svg(size, size, "\n  ".join(parts))
+
+
+write("madheshnext-mark.svg", mark(NAVY, WHITE, TEAL))
+write("madheshnext-mark-light.svg", mark(WHITE, NAVY, TEAL))
+write("favicon.svg", mark(NAVY, WHITE, TEAL))
+
+
+# ============================== rasterise =============================
+
+import cairosvg
+def png(src,dst,w=None,h=None,bg=None):
+    cairosvg.svg2png(url=os.path.join(OUT,src), write_to=os.path.join(OUT,dst),
+                     output_width=w, output_height=h, background_color=bg)
+    print(dst, os.path.getsize(os.path.join(OUT,dst)))
+
+png("madheshnext-logo.svg","madheshnext-logo.png",800)
+png("madheshnext-logo-reversed.svg","madheshnext-logo-reversed.png",800)
+png("madheshnext-logo-bilingual.svg","madheshnext-logo-bilingual.png",800)
+png("madheshnext-logo-horizontal.svg","madheshnext-logo-horizontal.png",1200)
+png("favicon.svg","favicon-32.png",32,32)
+png("favicon.svg","favicon-16.png",16,16)
+png("favicon.svg","apple-touch-icon.png",180,180)
+
+# og-image 1200x630, navy field, reversed wordmark + tagline
+S=1000; TRACK=-12
+runs,_ = shape("Madhesh Next", size=S, tracking=TRACK)
+x0,y0,x1,y1 = ink_bbox(runs)
+body,_,defs = wordmark(size=S, tracking=TRACK, text_fill=WHITE, uid="og")
+tsize=S*0.235
+truns,_ = shape("Moving Forward", key="poppins_med", size=tsize, tracking=tsize*0.42)
+tx0,ty0,tx1,ty1 = ink_bbox(truns,"poppins_med")
+W,H=1200,630
+target_w=880.0
+sc=target_w/(x1-x0)
+wm_h=(y1-y0)*sc
+tag_h=(ty1-ty0)*sc
+gap=S*0.20*sc
+total=wm_h+gap+tag_h
+ox=(W-target_w)/2
+oy=(H-total)/2 - 18
+tag_body="\n    ".join(path_el(r, TEAL) for r in truns)
+parts=[
+ '<rect width="%d" height="%d" fill="%s"/>'%(W,H,NAVY),
+ '<g transform="translate(%.2f %.2f) scale(%.5f)"><g transform="translate(%.2f %.2f)">%s</g></g>'
+   %(ox,oy,sc,-x0,-y0,body),
+ '<g transform="translate(%.2f %.2f) scale(%.5f)"><g transform="translate(%.2f %.2f)">%s</g></g>'
+   %(ox+target_w-(tx1-tx0)*sc, oy+wm_h+gap, sc, -tx0, -ty0, tag_body),
+ '<rect x="%.2f" y="%.2f" width="%.2f" height="6" fill="%s"/>'%(ox, H-96, 120, TEAL),
+]
+svg=svg(W,H,"\n  ".join(parts),defs)
+open(os.path.join(OUT,"og-image.svg"),"w").write(svg)
+png("og-image.svg","og-image.png",1200,630)
+os.remove(os.path.join(OUT,"og-image.svg"))
