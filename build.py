@@ -1191,8 +1191,9 @@ VERCEL_JSON = """{
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "trailingSlash": false,
   "redirects": [
-    { "source": "/conveners", "destination": "/team", "permanent": true },
-    { "source": "/conveners.html", "destination": "/team", "permanent": true }
+    { "source": "/conveners", "destination": "/team.html", "permanent": true },
+    { "source": "/conveners.html", "destination": "/team.html", "permanent": true },
+    { "source": "/team", "destination": "/team.html", "permanent": false }
   ],
   "headers": [
     { "source": "/assets/(.*)", "headers": [ { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" } ] },
