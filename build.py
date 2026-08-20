@@ -3,6 +3,8 @@
 import os, shutil
 from data import PROVINCE, DISTRICTS, TYPE_LABEL, TEAM
 
+ASSET_V = "2"   # bump on every asset change to bust caches
+
 ROOT = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(ROOT, "site")
 
@@ -52,12 +54,12 @@ def layout(title_en, title_ne, body, base="", desc_en="", active=""):
 <meta property="og:description" content="{desc}">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Madhesh Next">
-<meta property="og:image" content="https://madheshnext.org/assets/logo/og-image.png">
+<meta property="og:image" content="https://madheshnext.org/assets/logo/og-image.png?v={v}">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="icon" href="{base}assets/logo/favicon.svg" type="image/svg+xml">
-<link rel="icon" href="{base}assets/logo/favicon-32.png" sizes="32x32">
-<link rel="apple-touch-icon" href="{base}assets/logo/apple-touch-icon.png">
-<link rel="stylesheet" href="{base}assets/style.css">
+<link rel="icon" href="{base}assets/logo/favicon.svg?v={v}" type="image/svg+xml">
+<link rel="icon" href="{base}assets/logo/favicon-32.png?v={v}" sizes="32x32">
+<link rel="apple-touch-icon" href="{base}assets/logo/apple-touch-icon.png?v={v}">
+<link rel="stylesheet" href="{base}assets/style.css?v={v}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;600;700&family=Noto+Sans+Devanagari:wght@400;600;700&display=swap" rel="stylesheet">
@@ -67,7 +69,7 @@ def layout(title_en, title_ne, body, base="", desc_en="", active=""):
   <div class="wrap">
     <nav class="nav">
       <a class="brand" href="{base}index.html" aria-label="Madhesh Next — home">
-        <img class="brand__logo" src="{base}assets/logo/madheshnext-logo.svg" alt="Madhesh Next" width="118" height="34">
+        <img class="brand__logo" src="{base}assets/logo/madheshnext-logo.svg?v={v}" alt="Madhesh Next" width="118" height="34">
       </a>
       <button class="navtoggle" aria-expanded="false" aria-label="Menu">☰</button>
       <div class="nav__links">
@@ -89,7 +91,7 @@ def layout(title_en, title_ne, body, base="", desc_en="", active=""):
   <div class="wrap">
     <div class="footer-grid">
       <div>
-        <img class="footer__logo" src="{base}assets/logo/madheshnext-logo.svg" alt="Madhesh Next" width="152" height="44">
+        <img class="footer__logo" src="{base}assets/logo/madheshnext-logo.svg?v={v}" alt="Madhesh Next" width="152" height="44">
         <p style="max-width:34ch;margin-bottom:14px">{tagline}</p>
         <p style="font-size:.92rem"><a href="mailto:hello@madheshnext.org" style="display:inline">hello@madheshnext.org</a></p>
       </div>
@@ -103,12 +105,12 @@ def layout(title_en, title_ne, body, base="", desc_en="", active=""):
   </div>
 </footer>
 
-<script src="{base}assets/site.js"></script>
+<script src="{base}assets/site.js?v={v}"></script>
 </body>
 </html>
 """.format(
         title=title_en, desc=desc_en or "A citizen-led, non-partisan campaign to bring the economy into everyday public conversation in Madhesh.",
-        base=base, body="@@BODY@@", links=links, foot_links=foot_links, dist_links=dist_links,
+        base=base, v=ASSET_V, body="@@BODY@@", links=links, foot_links=foot_links, dist_links=dist_links,
         tagline=t("A citizen-led, non-partisan effort to move public discourse from politics to economy.",
                   "सार्वजनिक विमर्शलाई राजनीतिबाट अर्थतन्त्रतर्फ लैजाने नागरिक नेतृत्वको गैर-दलीय प्रयास।"),
         h_pages=t("Pages", "पृष्ठहरू"), h_districts=t("Districts", "जिल्लाहरू"),
@@ -1190,7 +1192,7 @@ def main():
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "trailingSlash": false,
   "headers": [
-    { "source": "/assets/(.*)", "headers": [ { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" } ] },
+    { "source": "/assets/(.*)", "headers": [ { "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800" } ] },
     { "source": "/(.*)", "headers": [
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" } ] }
