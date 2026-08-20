@@ -5,8 +5,6 @@
    ========================================================================== */
 
 :root{
-  --brand:#0A2C5A;      /* logo navy */
-  --brand-2:#009B95;    /* logo teal — the x in Next, and accents */
   /* Newsprint palette */
   --ink:#121212;          /* headlines, body */
   --ink-2:#333333;        /* secondary text */
@@ -20,7 +18,9 @@
   --paper-3:#efefef;
   --card:#ffffff;
 
-  --link:#326891;         /* NYT link blue */
+  --navy:#1B3160;         /* brand — wordmark */
+  --teal:#14A79E;         /* brand — chevron accent */
+  --link:#1B3160;         /* brand navy, used for links */
   --link-hover:#121212;
   --alert:#d0021b;        /* used sparingly */
 
@@ -57,10 +57,6 @@ html[data-lang="ne"] .person__name,html[data-lang="ne"] .tl__year{line-height:1.
 html[data-lang="ne"] .hero h1{font-size:clamp(1.9rem,4.4vw,3.1rem)}
 html[data-lang="ne"] .prose blockquote{line-height:1.45;font-size:1.4rem}
 html[data-lang="ne"] .lede,html[data-lang="ne"] .hero__lede{line-height:1.7}
-/* Devanagari conjuncts break apart when letterspaced — kill tracking on the labels */
-html[data-lang="ne"] .person__role,
-html[data-lang="ne"] .brand__tag,
-html[data-lang="ne"] .footer__tag{letter-spacing:.02em;text-transform:none;font-size:.72rem}
 
 img{max-width:100%;height:auto;display:block}
 
@@ -107,13 +103,8 @@ strong{font-weight:700}
 .nav{display:flex;align-items:center;gap:20px;height:62px}
 .brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--ink);flex:none;background:none;padding:0}
 .brand:hover{background:none}
-.brand__logo{height:26px;width:auto;display:block}
+.brand__logo{height:25px;width:auto;display:block}
 .brand__text{display:none}
-.brand__tag{
-  font-family:var(--sans);font-size:.62rem;font-weight:700;letter-spacing:.2em;
-  text-transform:uppercase;color:var(--brand-2);white-space:nowrap;
-  padding-left:12px;border-left:1px solid var(--line);
-}
 
 .nav__links{display:flex;gap:0;margin-left:auto;align-items:center;flex-wrap:wrap}
 .nav__links a{
@@ -145,10 +136,6 @@ strong{font-weight:700}
   .nav__links a{padding:12px 0;border-bottom:1px solid var(--line);font-size:.9rem}
   .nav__links a.is-active{border-bottom:1px solid var(--line)}
   .langswitch{margin:14px 0 0;align-self:flex-start}
-  .brand__tag{display:none}
-}
-@media (max-width:420px){
-  .brand__logo{height:21px}
 }
 
 /* ---------- Hero — front page lead ---------- */
@@ -239,11 +226,11 @@ a.card:hover h3{text-decoration:underline;text-underline-offset:3px}
 }
 .person__name{font-family:var(--serif);font-size:1.15rem;font-weight:700;margin:0 0 3px}
 .person__ne{font-size:.92rem;color:var(--muted);margin:0}
-.person__role{font-family:var(--sans);font-size:.66rem;letter-spacing:.13em;text-transform:uppercase;
-  color:var(--brand-2);font-weight:700;margin-top:10px}
-.person__avatar{background:var(--brand)}
-.person__bio{font-family:var(--sans);font-size:.85rem;line-height:1.55;color:var(--ink-2);
-  margin-top:12px;max-width:32ch}
+.person__role{font-family:var(--sans);font-size:.66rem;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--navy);font-weight:700;margin-top:10px;line-height:1.35}
+.person__avatar{background:var(--navy)}
+.person__bio{font-family:var(--serif);font-size:.95rem;line-height:1.5;color:var(--ink-2);
+  margin:12px 0 0;text-transform:none;letter-spacing:0}
 
 /* ---------- Districts ---------- */
 .dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:0}
@@ -336,11 +323,7 @@ table.lgs tbody tr:hover{background:var(--paper-2)}
 .site-footer a:hover{color:var(--ink);text-decoration:underline;text-underline-offset:3px;background:none}
 .site-footer p{font-family:var(--sans);font-size:.85rem;line-height:1.5}
 .footer-grid{display:grid;grid-template-columns:1.7fr repeat(auto-fit,minmax(135px,1fr));gap:32px}
-.footer__logo{height:34px;width:auto;margin-bottom:10px}
-.footer__tag{
-  font-family:var(--sans);font-size:.64rem;font-weight:700;letter-spacing:.2em;
-  text-transform:uppercase;color:var(--brand-2);margin:0 0 16px;
-}
+.footer__logo{height:30px;width:auto;margin-bottom:16px}
 .footer-bottom{
   border-top:1px solid var(--line);margin-top:34px;padding-top:18px;
   display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;
