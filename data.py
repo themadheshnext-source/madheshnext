@@ -235,29 +235,29 @@ TYPE_LABEL = {
     "RM":    ("Rural Municipality", "गाउँपालिका", "pill--rm"),
 }
 
-# The campaign team. Only Sanjog Dev is a convener; the others hold named roles.
+# The campaign team, in order of listing. One Campaign Convener.
 TEAM = [
     {"name_en": "Prashant Singh", "name_ne": "प्रशान्त सिंह",
-     "role_en": "Mentor", "role_ne": "मार्गदर्शक",
+     "role_en": "Mentor", "role_ne": "परामर्शदाता",
      "bio_en": "Author of the Madhesh Next founding note. Works on public discourse, institutions and regional economic strategy.",
      "bio_ne": "मधेश नेक्स्टको स्थापना–दस्तावेजका लेखक। सार्वजनिक विमर्श, संस्था र क्षेत्रीय आर्थिक रणनीतिमा कार्यरत।"},
     {"name_en": "Anil Mahaseth", "name_ne": "अनिल महासेठ",
-     "role_en": "Public Relations Specialist", "role_ne": "जनसम्पर्क विज्ञ",
-     "bio_en": "Focused on enterprise, trade and the role of local government as an economic actor.",
-     "bio_ne": "उद्यम, व्यापार र स्थानीय सरकारको आर्थिक भूमिकामा केन्द्रित।"},
+     "role_en": "Public Relations Specialist", "role_ne": "जनसम्पर्क विशेषज्ञ",
+     "bio_en": "Leads outreach and relationships for the campaign, focused on enterprise, trade and the role of local government as an economic actor.",
+     "bio_ne": "अभियानको सम्पर्क र सम्बन्ध विस्तारको नेतृत्व; उद्यम, व्यापार र स्थानीय सरकारको आर्थिक भूमिकामा केन्द्रित।"},
     {"name_en": "Sanjog Dev", "name_ne": "सञ्जोग देव",
      "role_en": "Campaign Convener", "role_ne": "अभियान संयोजक",
-     "bio_en": "Convener working on technology, data and the digital infrastructure of the campaign, and on civic organisation, district chapters and community.",
-     "bio_ne": "प्रविधि, तथ्याङ्क र अभियानको डिजिटल पूर्वाधार, तथा नागरिक संगठन, जिल्ला च्याप्टर र समुदायमा कार्यरत संयोजक।"},
+     "bio_en": "Convenes the campaign. Works on technology, data and digital infrastructure, and on civic organisation, district chapters and community outreach.",
+     "bio_ne": "अभियानको संयोजन। प्रविधि, तथ्याङ्क र डिजिटल पूर्वाधार, तथा नागरिक संगठन, जिल्ला च्याप्टर र सामुदायिक पहुँचमा कार्यरत।"},
     {"name_en": "Ajay Pandey", "name_ne": "अजय पाण्डे",
      "role_en": "Campaign Strategist", "role_ne": "अभियान रणनीतिकार",
-     "bio_en": "Engaged with education, skills and the bridge between colleges and the local economy.",
-     "bio_ne": "शिक्षा, सीप र क्याम्पस–स्थानीय अर्थतन्त्र सम्बन्धमा संलग्न।"},
+     "bio_en": "Sets campaign strategy. Engaged with education, skills and the bridge between colleges and the local economy.",
+     "bio_ne": "अभियानको रणनीति निर्धारण। शिक्षा, सीप र क्याम्पस–स्थानीय अर्थतन्त्रबीचको सम्बन्धमा संलग्न।"},
     {"name_en": "Bala Krishna", "name_ne": "बालकृष्ण",
-     "role_en": "Media Specialist", "role_ne": "सञ्चार विज्ञ",
-     "bio_en": "Working on media organisation, and on media strategy involving community actors.",
-     "bio_ne": "सञ्चार संगठन र सामुदायिक सहभागितामा आधारित मिडिया रणनीतिमा कार्यरत।"},
+     "role_en": "Media Specialist", "role_ne": "मिडिया विशेषज्ञ",
+     "bio_en": "Works on media organisation and media strategy, engaging community actors across the eight districts.",
+     "bio_ne": "मिडिया संगठन र मिडिया रणनीतिमा कार्यरत; आठै जिल्लाका सामुदायिक सहकर्मीसँग संलग्न।"},
 ]
 
-# Backwards-compatible alias — older code imported this name.
+# Backwards-compatible alias
 CONVENERS = TEAM
